@@ -1,47 +1,54 @@
 import streamlit as st
 import re
 
-# Hàm 1: Tiền xử lý dữ liệu từ file tần suất
+# Tiền xử lý dữ liệu từ file tần suất
 def preprocess_data():
-    st.write("Vui lòng tải lên tệp `giao-duc-f.txt` (dạng: từ : số_lần).")
+    st.write("Vui lòng tải lên tệp `giao-duc-f.txt` với định dạng: từ : số_lần")
 
     uploaded_file = st.file_uploader("Chọn tệp giao-duc-f.txt", type="txt", key="file_f")
 
     if uploaded_file is not None:
         tan_suat = {}
-        for line in uploaded_file:
+        error_lines = []
+
+        for i, line in enumerate(uploaded_file):
             line = line.decode("utf-8").strip()
             spls = line.split(" : ")
+
             if len(spls) == 2:
                 tu = spls[0]
-                so_lan = spls[1]
-                tan_suat[tu] = so_lan
+                try:
+                    so_lan = int(spls[1])
+                    tan_suat[tu] = so_lan
+                except ValueError:
+                    error_lines.append((i + 1, line))
+            else:
+                error_lines.append((i + 1, line))
 
-        st.subheader("Kết quả tiền xử lý:")
-        st.write(tan_suat)
+        if tan_suat:
+            st.subheader("Kết quả tiền xử lý:")
+            st.write(tan_suat)
 
-# Hàm 2: Xử lý văn bản, loại bỏ stopwords và đếm tần suất
+        if error_lines:
+            st.warning("Một số dòng bị sai định dạng:")
+            for dong, noi_dung in error_lines:
+                st.text(f"Dòng {dong}: {noi_dung}")
+
+# Xử lý văn bản và loại bỏ stopwords
 def process_text():
-    st.write("Tải lên 2 tệp: `giao-duc.txt` và `stopwords.txt`.")
+    st.write("Tải lên 2 tệp: `giao-duc.txt` (văn bản) và `stopwords.txt` (từ cần loại bỏ)")
 
     file_tho = st.file_uploader("Tải tệp giao-duc.txt", type="txt", key="file_tho")
     file_stop = st.file_uploader("Tải tệp stopwords.txt", type="txt", key="file_stop")
 
     if file_tho is not None and file_stop is not None:
-        # Đọc nội dung
         noi_dung = file_tho.read().decode("utf-8").lower()
-
-        # Làm sạch văn bản
         noi_dung = re.sub(r"[.,\-?:@#$%^&*()+=_`~!{}\[\]]", "", noi_dung)
 
-        # Đọc stopwords
         stop_words = [line.decode("utf-8").strip() for line in file_stop.readlines()]
-
-        # Loại bỏ stopwords
         for word in stop_words:
             noi_dung = noi_dung.replace(f' {word} ', ' ')
 
-        # Tách từ và đếm tần suất
         ds_tu = noi_dung.split()
         tan_suat = {}
         for tu in ds_tu:
@@ -51,7 +58,7 @@ def process_text():
         st.subheader("Tần suất từ (đã loại bỏ stopwords):")
         st.write(tan_suat)
 
-# Hàm chính điều khiển giao diện
+# Giao diện chính
 def main():
     st.title("Ứng dụng Xử lý Văn Bản")
 
@@ -61,7 +68,6 @@ def main():
     if choice == "Tiền xử lý dữ liệu":
         st.subheader("Tiền Xử Lý Dữ Liệu")
         preprocess_data()
-
     elif choice == "Xử lý văn bản":
         st.subheader("Xử Lý Văn Bản")
         process_text()
